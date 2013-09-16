@@ -1,0 +1,5 @@
+name = Course autofiller
+description = query downloaded data with SIS code
+package = Ufal
+core = 7.x
+
