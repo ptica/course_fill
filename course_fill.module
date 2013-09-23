@@ -26,7 +26,7 @@ function course_fill_menu() {
  */
 function course_fill_user_autocomplete_callback($string = '') {
 	$matches = array();
-	if ($string && strlen($string) > 6) {
+	if ($string && strlen($string) > 4) {
 		$staff_names = &drupal_static(__FUNCTION__);
 		
 		if (!isset($staff_info)) {
@@ -44,10 +44,10 @@ function course_fill_user_autocomplete_callback($string = '') {
 function course_fill_form_alter(&$form, &$form_state, $form_id) {
 	if (preg_match('/^(ufal_course_node_form)$/', $form_id)) {
 		// attach the ajax autocomplete
-		$form['title']['#autocomplete_path'] = 'course_fill/user_autocomplete_callback';
+		$form['field_sis_code']['und'][0]['value']['#autocomplete_path'] = 'course_fill/user_autocomplete_callback';
 		
 		// attach the ajax values prefiller
-		$form['title']['#ajax'] = array(
+		$form['field_sis_code']['und'][0]['value']['#ajax'] = array(
 			'callback' => 'course_form_callback',
 			'wrapper'  => 'course_replace_div',
 		);
@@ -55,7 +55,7 @@ function course_fill_form_alter(&$form, &$form_state, $form_id) {
 		$form['#suffix'] = '</div>';
 		
 		if (!empty($form_state['values']['field_sis_code'])) {
-			$username   = $form_state['values']['field_sis_code'];
+			$username   = $form_state['values']['field_sis_code']['und'][0]['value'];
 			$staff_info = course_get_staff_info($username);
 			
 			$textfields = array(
@@ -63,6 +63,10 @@ function course_fill_form_alter(&$form, &$form_state, $form_id) {
 				'annotation'  => 'field_annotation',
 				'literature'  => 'field_literature',
 				'syllabus'    => 'field_syllabus',
+				'Semester:'   => 'field_semester',
+				'E-Credits:'  => 'field_e_credits',
+				'examination' => 'field_examination',
+				'Guarantor:'  => 'field_guarantor',
 			);
 			foreach ($textfields as $index => $destination) {
 				// DO NOT Check if we got info && destination is empty so far
@@ -72,6 +76,12 @@ function course_fill_form_alter(&$form, &$form_state, $form_id) {
 				} else if (isset($staff_info->$index)) {
 					$value = $staff_info->$index;
 				}
+				$form[$destination]['und'][0]['value']['#value'] = $value;
+				if ($index != 'title') {
+					$form[$destination]['#pre_render'] = array('course_textarea_pre_render');
+					// tmp store it in default value, pick it up in the prerender
+					$form[$destination]['und']['#default_value'] = $value;
+				}
 			}
 		}
 	}
@@ -80,6 +90,11 @@ function course_fill_form_alter(&$form, &$form_state, $form_id) {
 function course_select_pre_render($element) {
 	// tmp stored, picking up here
 	$element['und']['select']['#value'] = array($element['und']['#default_value'][0]);
+	return $element;
+}
+function course_textarea_pre_render($element) {
+	// tmp stored, picking up here
+	$element['und'][0]['value']['#value'] = $element['und']['#default_value'];
 	return $element;
 }
 function course_other_pre_render($element) {
