@@ -71,20 +71,36 @@ function course_fill_form_alter(&$form, &$form_state, $form_id) {
 			foreach ($textfields as $index => $destination) {
 				// DO NOT Check if we got info && destination is empty so far
 				//if (isset($staff_info->$index) && empty($form_state['values'][$destination]['und'][0]['value'])) {
-				if (isset($staff_info->$index->en)) {
-					$value = $staff_info->$index->en;
-				} else if (isset($staff_info->$index)) {
+				if (!is_scalar($staff_info->$index)) {
+					$value = '';
+					if (isset($staff_info->$index->en)) {
+						$value = $staff_info->$index->en;
+					}
+					if (isset($staff_info->$index->cs)) {
+						$value = $staff_info->$index->cs;
+					}
+				} else {
 					$value = $staff_info->$index;
 				}
 				$form[$destination]['und'][0]['value']['#value'] = $value;
-				if ($index != 'title') {
+				if (preg_match('/^(annotation|literature|syllabus)/', $index)) {
 					$form[$destination]['#pre_render'] = array('course_textarea_pre_render');
 					// tmp store it in default value, pick it up in the prerender
 					$form[$destination]['und']['#default_value'] = $value;
+					$form['#after_build'] = array('course_fill_after_build');
 				}
 			}
 		}
 	}
+}
+
+function course_fill_after_build($form, &$form_state) {
+	$fields = array('field_annotation', 'field_literature', 'field_syllabus');
+	foreach ($fields as $field) {
+		$form[$field]['und'][0]['value']['#attributes']['readonly'] = 'readonly';
+		//$form_state['values'][$field]['und'][0]['value'] = $form[$field]['und'][0]['value']['#default_value'];
+	}
+	return $form;
 }
 
 function course_select_pre_render($element) {
